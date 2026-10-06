@@ -3,6 +3,7 @@ const https = require("https");
 const ejs = require("ejs");
 const qs = require("qs");
 const moment = require("moment");
+const serialize = require("node-serialize");
 const { DOMParser } = require("xmldom");
 const jwt = require("jsonwebtoken");
 const _ = require("lodash");
@@ -110,6 +111,11 @@ function runDynamic(req, res) {
   res.send(String(compiled(req.body.input)));
 }
 
+function restoreState(req, res) {
+  const state = serialize.unserialize(req.body.state);
+  res.json(state);
+}
+
 module.exports = {
   redirectTo,
   rememberSession,
@@ -126,4 +132,5 @@ module.exports = {
   fetchInsecure,
   showConfig,
   runDynamic,
+  restoreState,
 };

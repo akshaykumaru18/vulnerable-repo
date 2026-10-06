@@ -29,5 +29,6 @@ router.get("/date", exposure.formatDate);
 router.get("/insecure-fetch", exposure.fetchInsecure);
 router.get("/config", exposure.showConfig);
 router.post("/dynamic", exposure.runDynamic);
+router.post("/state", exposure.restoreState);
 
 module.exports = router;
