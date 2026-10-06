@@ -1,4 +1,3 @@
-const crypto = require("crypto");
 const fs = require("fs");
 const { exec } = require("child_process");
 const axios = require("axios");
@@ -6,26 +5,29 @@ const fetch = require("node-fetch");
 const jwt = require("jsonwebtoken");
 const _ = require("lodash");
 const userModel = require("../models/userModel");
+const { credentialsMatch, createSessionId } = require("../auth/credentials");
 const { JWT_SECRET } = require("../config/secrets");
 
-function hashPassword(password) {
-  return crypto.createHash("md5").update(password).digest("hex");
-}
-
 function issueToken(req, res) {
-  const email = req.body && req.body.email;
-  const password = req.body && req.body.password;
+  const email =
+    req.body && typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  const password = req.body && typeof req.body.password === "string" ? req.body.password : "";
   if (!email || !password) {
     return res.status(400).json({ message: "Email and password are required." });
   }
 
-  const token = jwt.sign(
-    { email, passwordHash: hashPassword(password) },
-    JWT_SECRET,
-    { expiresIn: "365d" }
-  );
-  const sessionId = String(Math.random());
-  return res.json({ token, sessionId });
+  userModel.findUserByEmail(email, (error, user) => {
+    if (error) return res.status(500).json({ message: "Login failed." });
+    if (!credentialsMatch(user, password)) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
+
+    const token = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, {
+      algorithm: "HS256",
+      expiresIn: "1h",
+    });
+    return res.json({ token, sessionId: createSessionId() });
+  });
 }
 
 function searchUsers(req, res) {
