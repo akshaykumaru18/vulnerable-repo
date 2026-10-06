@@ -5,7 +5,8 @@
   "description": "Intentionally insecure demo API for SonarQube and Trivy scanning practice. Do not deploy.",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "node --test src/auth/credentials.test.js src/auth/login.test.js"
   },
   "dependencies": {
     "axios": "0.21.1",

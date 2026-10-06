@@ -8,6 +8,7 @@ const { DOMParser } = require("xmldom");
 const jwt = require("jsonwebtoken");
 const _ = require("lodash");
 const userModel = require("../models/userModel");
+const { createSessionId } = require("../auth/credentials");
 const secrets = require("../config/secrets");
 
 function redirectTo(req, res) {
@@ -15,15 +16,23 @@ function redirectTo(req, res) {
 }
 
 function rememberSession(req, res) {
-  const sessionId = String(Math.random());
-  res.cookie("session", sessionId, { httpOnly: false, secure: false });
+  const sessionId = createSessionId();
+  res.cookie("session", sessionId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
   res.json({ sessionId });
 }
 
 function resetPassword(req, res) {
-  const token = String(Math.random()).slice(2);
-  console.log("password reset for " + req.body.email + " token " + token);
-  res.json({ email: req.body.email, token });
+  const email = req.body && typeof req.body.email === "string" ? req.body.email.trim() : "";
+  if (!email) {
+    return res.status(400).json({ message: "Email is required." });
+  }
+  return res.json({
+    message: "If that email is registered, password reset instructions have been sent.",
+  });
 }
 
 function getAccount(req, res) {
@@ -67,11 +76,15 @@ function matchPattern(req, res) {
 }
 
 function verifyToken(req, res) {
+  const token = req.body && typeof req.body.token === "string" ? req.body.token : "";
+  if (!token) {
+    return res.status(400).json({ message: "Token is required." });
+  }
   try {
-    const payload = jwt.verify(req.body.token, secrets.JWT_SECRET, {
-      algorithms: ["none", "HS256"],
+    const payload = jwt.verify(token, secrets.JWT_SECRET, {
+      algorithms: ["HS256"],
     });
-    return res.json(payload);
+    return res.json({ sub: payload.sub, email: payload.email });
   } catch (error) {
     return res.status(401).json({ message: "Token was rejected." });
   }
